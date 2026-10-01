@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portal VPN Kokoanet</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>[x-cloak]{display:none !important} html.dark{color-scheme:dark}</style>
+  <script>
+    try {
+      const saved = localStorage.getItem('theme')
+      const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+      document.documentElement.classList.toggle('dark', dark)
+    } catch {}
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+        },
+      },
+    }
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 antialiased">
+<div x-data="vpnPortal()" x-cloak class="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
+
+  <!-- Vista de acceso -->
+  <div x-show="view === 'login'" class="fixed right-4 top-4">
+  <button @click="toggleTheme()" type="button" :aria-label="dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'" :title="dark ? 'Modo claro' : 'Modo oscuro'"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30">
+    <svg x-show="!dark" class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    <svg x-show="dark" class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-2.93 1.41-1.41m11.32-11.32 1.41-1.41M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41"/></svg>
+  </button>
+  </div>
+  <template x-if="view === 'login'">
+    <div class="mx-auto mt-12 w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm sm:mt-24">
+      <div class="space-y-1.5 p-6 pb-4">
+        <h1 class="text-xl font-semibold tracking-tight">Portal VPN Kokoanet</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Ingresa el token de acceso para continuar.</p>
+      </div>
+      <form @submit.prevent="login()" class="space-y-4 p-6 pt-2">
+        <div class="space-y-2">
+          <label for="token" class="text-sm font-medium leading-none">Token de Acceso Global</label>
+          <input id="token" type="password" x-model="token" autocomplete="off"
+                 class="flex h-9 w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500">
+        </div>
+        <div x-show="loginState.error" x-text="loginState.error" role="alert"
+             class="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-300"></div>
+        <button type="submit" :disabled="loginState.loading || !token"
+                class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 text-sm font-medium text-white shadow transition-colors hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+          <svg x-show="loginState.loading" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.55"/></svg>
+          <span x-text="loginState.loading ? 'Verificando…' : 'Entrar'"></span>
+        </button>
+      </form>
+    </div>
+  </template>
+
+  <!-- Dashboard -->
+  <template x-if="view === 'dashboard'">
+    <div class="space-y-6">
+      <header class="flex items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold tracking-tight">Portal VPN Kokoanet</h1>
+        <div class="flex items-center gap-2">
+        <button @click="toggleTheme()" type="button" :aria-label="dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'" :title="dark ? 'Modo claro' : 'Modo oscuro'"
+          class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30">
+    <svg x-show="!dark" class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    <svg x-show="dark" class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-2.93 1.41-1.41m11.32-11.32 1.41-1.41M2 12h2m16 0h2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41"/></svg>
+  </button>
+        <button @click="logout()" type="button"
+                class="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm font-medium shadow-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30">
+          Cerrar sesión
+        </button>
+        </div>
+      </header>
+
+      <!-- Nueva conexión -->
+      <section class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+        <div class="space-y-1.5 p-6 pb-2">
+          <h2 class="text-lg font-semibold tracking-tight">Nuevo Usuario</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400">Solicita una llave temporal y genera el comando para conectar tu dispositivo.</p>
+        </div>
+        <div class="space-y-5 p-6 pt-4">
+
+          <div class="space-y-2">
+            <label for="username" class="text-sm font-medium leading-none">Correo Institucional</label>
+            <div class="flex h-9 w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/30">
+              <input id="username" type="text" x-model="username" autocomplete="off" placeholder="usuario"
+                     class="min-w-0 flex-1 rounded-l-md bg-transparent px-3 py-1 text-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none">
+              <span class="flex items-center rounded-r-md border-l border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-3 text-sm text-slate-500 dark:text-slate-400">@espol.edu.ec</span>
+            </div>
+          </div>
+          <button @click="sendInvite()" :disabled="!usernameValid || invite.loading" type="button"
+                  class="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md bg-indigo-600 px-4 text-sm font-medium text-white shadow transition-colors hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 sm:w-auto">
+            <svg x-show="invite.loading" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.2-8.55"/></svg>
+            <span x-text="invite.loading ? 'Enviando…' : '1. Enviar llave temporal a mi correo'"></span>
+          </button>
+          <div x-show="invite.success" x-text="invite.success" role="status"
+               class="rounded-md border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 px-3 py-2 text-sm text-green-800 dark:text-green-300"></div>
+          <div x-show="invite.error" x-text="invite.error" role="alert"
+               class="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-300"></div>
+
+          <div class="border-t border-slate-100 dark:border-slate-800"></div>
+
+          <div class="space-y-2">
+            <label for="authKey" class="text-sm font-medium leading-none">2. Pega la llave recibida aquí</label>
+            <input id="authKey" type="text" x-model="authKey" autocomplete="off"
+                   class="flex h-9 w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1 font-mono text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500">
+          </div>
+          <div class="space-y-2">
+            <label for="hostname" class="text-sm font-medium leading-none">Nombre de este dispositivo <span class="font-normal text-slate-500 dark:text-slate-400">(opcional)</span></label>
+            <input id="hostname" type="text" x-model="rawHostname" autocomplete="off"
+                   class="flex h-9 w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500">
+            <p x-show="hostname" class="text-[0.8rem] text-slate-500 dark:text-slate-400">Se usará: <code class="rounded bg-slate-100 dark:bg-slate-800 px-1 py-0.5 font-mono text-slate-800 dark:text-slate-200" x-text="hostname"></code></p>
+          </div>
+
+          <template x-for="block in commandBlocks" :key="block.id">
+            <div class="space-y-2">
+              <h3 class="text-sm font-medium leading-none" x-text="block.title"></h3>
+              <div class="relative">
+                <pre class="whitespace-pre-wrap break-all rounded-md bg-slate-950 py-3 pl-4 pr-12 font-mono text-[13px] leading-relaxed text-slate-100"><code x-text="block.cmd"></code></pre>
+                <button @click="copy(block.id, block.cmd)" type="button"
+                        :title="copiedId === block.id ? '¡Copiado!' : 'Copiar al portapapeles'"
+                        :aria-label="copiedId === block.id ? '¡Copiado!' : 'Copiar al portapapeles'"
+                        class="group absolute right-2 top-2 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+                  <svg x-show="copiedId !== block.id" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  <svg x-show="copiedId === block.id" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                  <span role="tooltip" x-text="copiedId === block.id ? '¡Copiado!' : 'Copiar'" class="pointer-events-none absolute -top-8 right-0 whitespace-nowrap rounded-md bg-slate-800 px-2 py-1 text-xs font-medium text-white opacity-0 shadow transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" :class="copiedId === block.id && '!opacity-100'"></span>
+                </button>
+              </div>
+            </div>
+          </template>
+          <div x-show="copyError" x-text="copyError" role="alert"
+               class="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-300"></div>
+        </div>
+      </section>
+
+      <!-- Dispositivos -->
+      <section class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+        <div class="flex items-start justify-between gap-3 p-6 pb-2">
+          <div class="space-y-1.5">
+            <h2 class="text-lg font-semibold tracking-tight">Dispositivos conectados</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Equipos registrados en la red.</p>
+          </div>
+          <button @click="loadNodes()" :disabled="nodesState.loading" type="button"
+                  class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm font-medium shadow-sm transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30 disabled:pointer-events-none disabled:opacity-50">
+            <svg class="h-4 w-4" :class="nodesState.loading && 'animate-spin'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            <span x-text="nodesState.loading ? 'Actualizando…' : 'Actualizar tabla'"></span>
+          </button>
+        </div>
+        <div class="space-y-4 p-6 pt-4">
+          <div x-show="nodesState.error" x-text="nodesState.error" role="alert"
+               class="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-300"></div>
+          <div class="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-700">
+            <table class="min-w-full text-left text-sm">
+              <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400">
+                <tr class="border-b border-slate-200 dark:border-slate-700">
+                  <th class="h-10 px-4 font-medium">Hostname</th>
+                  <th class="h-10 px-4 font-medium">IP</th>
+                  <th class="h-10 px-4 font-medium">Estado</th>
+                  <th class="h-10 px-4 font-medium">Última conexión</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="node in nodes" :key="node.id">
+                  <tr class="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                    <td class="whitespace-nowrap px-4 py-3 font-medium" x-text="node.name"></td>
+                    <td class="whitespace-nowrap px-4 py-3 font-mono text-[13px]" x-text="node.ipAddresses[0] || '—'"></td>
+                    <td class="whitespace-nowrap px-4 py-3">
+                      <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                            :class="node.online ? 'border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300' : 'border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300'">
+                        <span class="h-1.5 w-1.5 rounded-full" :class="node.online ? 'bg-green-50 dark:bg-green-950/400' : 'bg-red-50 dark:bg-red-950/400'"></span>
+                        <span x-text="node.online ? 'En línea' : 'Desconectado'"></span>
+                      </span>
+                    </td>
+                    <td class="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-400" x-text="formatLastSeen(node.lastSeen)"></td>
+                  </tr>
+                </template>
+                <tr x-show="nodesLoaded && nodes.length === 0">
+                  <td colspan="4" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">No hay dispositivos conectados todavía.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </template>
+</div>
+
+<script>
+const LOGIN_SERVER = 'https://headscale.elpitagoras14.qzz.io'
+const USERNAME_RE = /^[a-z0-9]+([._-][a-z0-9]+)*$/
+
+function initialState() {
+  return {
+    view: 'login',
+    token: '',
+    username: '',
+    authKey: '',
+    rawHostname: '',
+    nodes: [],
+    nodesLoaded: false,
+    copiedId: null,
+    copyError: '',
+    loginState: { loading: false, error: '' },
+    invite: { loading: false, error: '', success: '' },
+    nodesState: { loading: false, error: '' },
+  }
+}
+
+function vpnPortal() {
+  return {
+    ...initialState(),
+    dark: document.documentElement.classList.contains('dark'),
+
+    toggleTheme() {
+      this.dark = !this.dark
+      document.documentElement.classList.toggle('dark', this.dark)
+      try { localStorage.setItem('theme', this.dark ? 'dark' : 'light') } catch {}
+    },
+
+    get usernameValid() {
+      const u = this.username.trim().toLowerCase()
+      return u.length >= 1 && u.length <= 64 && USERNAME_RE.test(u)
+    },
+    get hostname() {
+      return this.rawHostname
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+    },
+    buildCommand(prefix) {
+      const parts = [
+        ...prefix,
+        'tailscale up',
+        `--login-server=${LOGIN_SERVER}`,
+        `--authkey=${this.authKey.trim() || '<LLAVE>'}`,
+      ]
+      if (this.hostname) parts.push(`--hostname=${this.hostname}`)
+      return parts.join(' ')
+    },
+    get windowsCmd() { return this.buildCommand([]) },
+    get linuxCmd() { return this.buildCommand(['sudo']) },
+    get commandBlocks() {
+      return [
+        { id: 'windows', title: 'Windows', cmd: this.windowsCmd },
+        { id: 'linux', title: 'Linux', cmd: this.linuxCmd },
+      ]
+    },
+
+    async api(path, body) {
+      let res
+      try {
+        res = await fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...body, token: this.token }),
+        })
+      } catch {
+        throw new Error('Error de conexión. Revisa tu red e intenta de nuevo.')
+      }
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 401) {
+        this.logout()
+        this.loginState.error = 'Token inválido.'
+        throw new Error('Token inválido.')
+      }
+      if (res.status === 429) throw new Error('Demasiados intentos, espera unos minutos.')
+      if (!res.ok) throw new Error(data.error || 'Ocurrió un error inesperado.')
+      return data
+    },
+
+    async login() {
+      this.loginState = { loading: true, error: '' }
+      try {
+        await this.api('/api/verify-token', {})
+        this.loginState.loading = false
+        this.view = 'dashboard'
+        this.$nextTick(() => this.loadNodes())
+      } catch (err) {
+        // api() ya fijó loginState.error en un 401 (y reinició el token); no lo pisamos
+        this.loginState = { loading: false, error: this.loginState.error || err.message }
+      }
+    },
+
+    logout() {
+      const dark = this.dark
+      Object.assign(this, initialState(), { dark })
+    },
+
+    async sendInvite() {
+      this.invite = { loading: true, error: '', success: '' }
+      const user = this.username.trim().toLowerCase()
+      try {
+        await this.api('/api/invite', { username: this.username })
+        this.invite = {
+          loading: false,
+          error: '',
+          success: `Llave enviada a ${user}@espol.edu.ec. Busca el correo con el asunto "Tu llave temporal para conectarte a la VPN" y revisa también la carpeta de spam. Expira en 5 minutos.`,
+        }
+      } catch (err) {
+        if (this.view === 'dashboard') this.invite = { loading: false, error: err.message, success: '' }
+      }
+    },
+
+    async loadNodes() {
+      this.nodesState = { loading: true, error: '' }
+      try {
+        this.nodes = await this.api('/api/nodes', {})
+        this.nodesLoaded = true
+        this.nodesState = { loading: false, error: '' }
+      } catch (err) {
+        if (this.view === 'dashboard') this.nodesState = { loading: false, error: err.message }
+      }
+    },
+
+    formatLastSeen(value) {
+      return value ? new Date(value).toLocaleString() : 'Nunca'
+    },
+
+    async copy(id, text) {
+      this.copyError = ''
+      try {
+        await navigator.clipboard.writeText(text)
+        this.copiedId = id
+        setTimeout(() => { if (this.copiedId === id) this.copiedId = null }, 2000)
+      } catch {
+        this.copyError = 'No se pudo copiar. Selecciona el comando y cópialo manualmente.'
+      }
+    },
+  }
+}
+</script>
+</body>
+</html>
