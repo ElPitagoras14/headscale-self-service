@@ -13,8 +13,8 @@
 
 ## 3. Puesta en marcha
 
-- [ ] 3.1 Inicializar git en el proyecto con rama `main`, comprobar que `.gitignore` excluye `.env` y `node_modules`, y crear el repositorio remoto en GitHub; verificar con `git branch --show-current` que es `main` y con `git status` que `.env` no está en seguimiento
-- [ ] 3.2 Configurar en el repositorio el secret `DOKPLOY_API_KEY` (API key generado en Dokploy) y la variable `DOKPLOY_COMPOSE_ID` con `nhBf2Cj__vwoxI7h8HnBt`; verificar con `gh secret list` y `gh variable list` que ambos existen
+- [x] 3.1 Inicializar git en el proyecto con rama `main`, comprobar que `.gitignore` excluye `.env` y `node_modules`, y crear el repositorio remoto en GitHub; verificar con `git branch --show-current` que es `main` y con `git status` que `.env` no está en seguimiento
+- [x] 3.2 Configurar en el repositorio el secret `DOKPLOY_API_KEY` (API key generado en Dokploy) y la variable `DOKPLOY_COMPOSE_ID` con `nhBf2Cj__vwoxI7h8HnBt`; verificar con `gh secret list` y `gh variable list` que ambos existen
 - [ ] 3.3 Preparar el servicio compose en Dokploy: `image: ghcr.io/elpitagoras14/headscale-self-service:<version>` (o `pull_policy: always` con `latest`), las variables de entorno del portal con `TRUST_PROXY=2`, y credenciales del registro GHCR (PAT `read:packages`) porque el paquete es privado; verificar con un `docker pull` desde el host de Dokploy usando esas credenciales
 - [ ] 3.4 Hacer el primer push a `main`; verificar en Actions que se publica `0.1.0`: existe el tag `v0.1.0`, el Release `v0.1.0` y la imagen en GHCR con los tags `0.1.0`, `0.1` y `latest`; verificar además que se solicita el despliegue en Dokploy y que el servicio queda `healthy` en su dominio
 - [ ] 3.5 Hacer un segundo push a `main` sin cambiar `VERSION`; verificar que el workflow termina en verde sin construir ni publicar y con el aviso de versión sin incrementar; verificar además que el job `deploy` no se ejecuta
